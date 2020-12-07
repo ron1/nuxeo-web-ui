@@ -42,6 +42,7 @@ jobs:
           popd
 
           find . -type f -not -path "./node_modules/*" -regex ".*\.\(yaml\|sample\|xml\)" -exec sed -i 's/'"$OLD_VERSION"'/'"$VERSION"'/g' {} \;
+          sed -i -e 's/-rc\.[0-9]+//g' plugin/web-ui/marketplace/src/main/assemble/assembly.xml
 
           # align on same promoted version of elements
           npm i @nuxeo/nuxeo-elements@$VERSION --save-exact

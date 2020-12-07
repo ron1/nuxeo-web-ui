@@ -85,6 +85,12 @@ def getVersion() {
   return isPullRequest() ? getPullRequestVersion() : getReleaseVersion()
 }
 
+def padPrerelease(version) {
+  def count = sh(returnStdout: true, script: "echo ${version} | sed -r s/[0-9]+\\.[0-9]+\\.[0-9]+-rc\\.\\([0-9]+\\)/\\\\1/g")
+  def padded = sh(returnStdout: true, script: "printf '%03d' ${count}")
+  return sh(script: "echo ${version} | sed -E 's/([0-9]+\\.[0-9]+\\.[0-9]+-rc\\.)[0-9]+/\\1${padded}/g'", returnStdout: true).trim()
+}
+
 pipeline {
   agent {
     label "jenkins-maven-nodejs-nuxeo"
@@ -107,6 +113,10 @@ pipeline {
           script {
             def snapshotVersion = getPackageVersion()
             sh "find . -type f -not -path './node_modules/*' -regex '.*\\.\\(yaml\\|sample\\|xml\\)' -exec sed -i 's/${snapshotVersion}/${VERSION}/g' {} \\;"
+            if (!isPullRequest()) {
+              // XXX: pad the pre-release version with zeros, keeping 3 digits (see WEBUI-140)
+              sh "sed -i -e 's/\${maven.project.version}/${padPrerelease(VERSION)}/g' plugin/web-ui/marketplace/src/main/assemble/assembly.xml"
+            }
           }
           sh "npm version ${VERSION} --no-git-tag-version"
           dir('packages/nuxeo-web-ui-ftest') {
